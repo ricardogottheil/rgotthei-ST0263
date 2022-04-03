@@ -1,77 +1,38 @@
-version: "3"
-
+version: "3.1"
 services:
-    wp:
-        container_name: wp_ricardogottheil
-        image: wordpress:latest # https://hub.docker.com/_/wordpress/
-        ports:
-            - 81:80 # change ip if required
+    nginx:
+        container_name: nginx
+        image: nginx
         volumes:
-            - ./config/php.conf.uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
-            - ricardogottheil_front_data:/var/www/html # Full wordpress project
+            - ./nginx.conf:/etc/nginx/nginx.conf:ro
+            - ./ssl:/etc/nginx/ssl
+            - ./ssl.conf:/etc/nginx/ssl.conf
+        ports:
+            - 80:80
+            - 443:443
+        depends_on:
+            - wordpress
+    wordpress:
+        container_name: wordpress
+        image: wordpress
+        restart: always
         environment:
             WORDPRESS_DB_HOST: db
-            WORDPRESS_DB_NAME: "${DB_NAME}"
-            WORDPRESS_DB_USER: root
-            WORDPRESS_DB_PASSWORD: "${DB_ROOT_PASSWORD}"
-            VIRTUAL_PORT: 81
-        depends_on:
-            - db
-
+            WORDPRESS_DB_USER: exampleuser
+            WORDPRESS_DB_PASSWORD: examplepass
+            WORDPRESS_DB_NAME: exampledb
+        volumes:
+            - wordpress:/var/www/html
     db:
-        container_name: db
-        image: mysql:latest
-        ports:
-            - 3306:3306
-        command:
-            [
-                "--default_authentication_plugin=mysql_native_password",
-                "--character-set-server=utf8mb4",
-                "--collation-server=utf8mb4_unicode_ci",
-            ]
-        volumes:
-            - ./wp-data:/docker-entrypoint-initdb.d
-            - ricardogottheil_db_data:/var/lib/mysql
-        environment:
-            MYSQL_DATABASE: "${DB_NAME}"
-            MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
-    nginx:
-        image: nginx:1.15-alpine
-        container_name: nginx
-        ports:
-            - "80:80"
-            - "443:443"
-        volumes:
-            - ./data/nginx:/etc/nginx/conf.d
-            - ricardogottheil_front_data:/var/www/html:rw
-            - ./letsencrypt/conf:/etc/letsencrypt
-    certbot:
-        container_name: certbot
-        image: certbot/certbot
-        volumes:
-            - ./data/certbot/conf:/etc/letsencrypt
-            - ./data/certbot/www:/var/www/certbot
-
-    letsencrypt:
+        image: mysql:5.7
         restart: always
-        image: vdhpieter/letsencrypt-webroot
-        volumes:
-            - /etc/localtime:/etc/localtime:ro
-            - /var/run/docker.sock:/var/run/docker.sock
-            - ./letsencrypt/conf:/etc/letsencrypt
-            - ./letsencrypt/html:/tmp/letsencrypt
-            - ricardogottheil_front_data:/var/www/html
-        links:
-            - nginx
         environment:
-            - DOMAINS=mcmagna.com www.mcmagna.com
-            - EMAIL=rgotthei@eafit.edu.co
-            - WEBROOT_PATH=/var/www/html
-            - EXP_LIMIT=30
-            - CHECK_FREQ=30
-            - CHICKENEGG=1
-            - STAGING=0
-
-    volumes:
-        ricardogottheil_db_data:
-        ricardogottheil_front_data:
+            MYSQL_DATABASE: exampledb
+            MYSQL_USER: exampleuser
+            MYSQL_PASSWORD: examplepass
+            MYSQL_RANDOM_ROOT_PASSWORD: "1"
+        volumes:
+            - db:/var/lib/mysql
+volumes:
+    wordpress:
+    db:
