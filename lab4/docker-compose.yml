@@ -1,0 +1,51 @@
+version: '3.1'
+services:
+  nginx:
+    container_name: nginx
+    image: nginx
+    volumes:
+    - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    - ./ssl:/etc/nginx/ssl
+    - ./ssl.conf:/etc/nginx/ssl.conf
+    ports:
+    - 80:80
+    - 443:443
+    depends_on:
+    - frontend
+  backend:
+    environment: 
+      - URL_DB_CONNECTION=localhost:27017/myapp
+    build: ./backend
+    container_name: backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - node:/app
+  frontend:
+    build: ./frontend 
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - react:/app
+    stdin_open: true
+  backend-2:
+    depends_on:
+      - backend
+    environment:
+      - URL_DB_CONNECTION=localhost:27017/myapp
+    build: ./backend
+    container_name: backend-2
+    volumes:
+      - node:/app
+  frontend-2:
+    depends_on:
+      - frontend
+    build: ./frontend
+    container_name: frontend-2
+    volumes:
+      - react:/app
+    stdin_open: true
+volumes:
+  node:
+  react:
